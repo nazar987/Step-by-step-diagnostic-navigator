@@ -1,0 +1,6 @@
+{
+  "appId": "ru.navigator.dc",
+  "appName": "ДЦ Навигатор",
+  "webDir": "dist",
+  "android": { "backgroundColor": "#f5f5ef" }
+}

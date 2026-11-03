@@ -1,0 +1,16 @@
+node_modules/
+dist/
+release/
+test-results/
+playwright-report/
+*.log
+.env*
+!.env.example
+android/.gradle/
+android/local.properties
+android/captures/
+android/**/build/
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+*.keystore
+*.jks
