@@ -73,17 +73,93 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # ubuntu-24.04 supplies Android command-line tools and ANDROID_HOME.
-      # Explicitly install the platform and Build Tools used by this release.
+      # Bootstrap from Google's stable SDK metadata instead of relying on the
+      # hosted runner to have ANDROID_HOME or sdkmanager preinstalled.
       - name: Prepare Android SDK 36
         run: |
           set -euo pipefail
-          test -n "${ANDROID_HOME:-}"
-          sdk_manager="$(command -v sdkmanager)"
+          export ANDROID_HOME="$RUNNER_TEMP/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\n' "$ANDROID_HOME" "$ANDROID_HOME" >> "$GITHUB_ENV"
+
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import pathlib
+          import re
+          import shutil
+          import urllib.request
+          import xml.etree.ElementTree as ET
+          import zipfile
+
+          repository = 'https://dl.google.com/android/repository/'
+          with urllib.request.urlopen(repository + 'repository2-1.xml', timeout=60) as response:
+              metadata = ET.fromstring(response.read())
+          for element in metadata.iter():
+              element.tag = element.tag.rsplit('}', 1)[-1]
+          packages = [package for package in metadata.findall('remotePackage')
+                      if package.get('path') == 'cmdline-tools;latest'
+                      and package.find('obsolete') is None
+                      and package.find('channelRef') is not None
+                      and package.find('channelRef').get('ref') == 'channel-0']
+          if len(packages) != 1:
+              raise SystemExit('Expected exactly one stable cmdline-tools;latest package')
+          archives = [archive.find('complete') for archive in packages[0].findall('archives/archive')
+                      if archive.findtext('host-os') == 'linux']
+          if len(archives) != 1 or archives[0] is None:
+              raise SystemExit('Expected exactly one complete Linux command-line tools archive')
+          archive = archives[0]
+          filename = archive.findtext('url', '').strip()
+          if not re.fullmatch(r'commandlinetools-linux-[0-9]+_latest\.zip', filename):
+              raise SystemExit('Unexpected command-line tools archive URL')
+          checksum = archive.find('checksum')
+          if checksum is None:
+              raise SystemExit('Google metadata is missing the archive checksum')
+          algorithm = checksum.get('type', 'sha1').lower().replace('-', '')
+          expected_hash = (checksum.text or '').strip().lower()
+          if algorithm not in {'sha1', 'sha256', 'sha512'}:
+              raise SystemExit('Unsupported command-line tools checksum algorithm')
+          digest = hashlib.new(algorithm)
+          if not re.fullmatch(r'[0-9a-f]{' + str(digest.digest_size * 2) + r'}', expected_hash):
+              raise SystemExit('Invalid command-line tools checksum in Google metadata')
+          expected_size = int(archive.findtext('size', '0'))
+          if expected_size <= 0:
+              raise SystemExit('Invalid command-line tools archive size')
+
+          temporary = pathlib.Path(os.environ['RUNNER_TEMP'])
+          download = temporary / filename
+          with urllib.request.urlopen(repository + filename, timeout=120) as response, download.open('wb') as output:
+              while chunk := response.read(1024 * 1024):
+                  digest.update(chunk)
+                  output.write(chunk)
+          if download.stat().st_size != expected_size or digest.hexdigest() != expected_hash:
+              raise SystemExit('Android command-line tools archive failed Google checksum/size verification')
+
+          unpacked = temporary / 'android-commandline-tools-unpacked'
+          unpacked.mkdir(parents=True, exist_ok=True)
+          with zipfile.ZipFile(download) as bundle:
+              for entry in bundle.infolist():
+                  target = (unpacked / entry.filename).resolve()
+                  if not target.is_relative_to(unpacked.resolve()):
+                      raise SystemExit('Unsafe path in Android command-line tools archive')
+              bundle.extractall(unpacked)
+          sdk = pathlib.Path(os.environ['ANDROID_HOME'])
+          tools = sdk / 'cmdline-tools' / 'latest'
+          tools.parent.mkdir(parents=True, exist_ok=True)
+          shutil.move(str(unpacked / 'cmdline-tools'), str(tools))
+          for executable in (tools / 'bin').iterdir():
+              if executable.is_file():
+                  executable.chmod(executable.stat().st_mode | 0o111)
+          print(f'Installed {filename}; verified Google {algorithm}: {expected_hash}')
+          PY
+
+          sdk_manager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdk_manager"
           { yes || true; } | "$sdk_manager" --sdk_root="$ANDROID_HOME" --licenses > /dev/null
           "$sdk_manager" --sdk_root="$ANDROID_HOME" --install \
-            'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+            'platforms;android-36' 'build-tools;36.0.0' 'build-tools;35.0.0' 'platform-tools'
           test -x "$ANDROID_HOME/build-tools/36.0.0/aapt"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aapt"
 
       # Signing keys and passwords are intentionally absent from this workflow.
       # The resulting APK is signed and cryptographically verified locally.
