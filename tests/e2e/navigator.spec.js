@@ -60,7 +60,7 @@ test('Tree search opens a result and restores its question history', async ({ pa
 test('SVG controls are accessible and blinking can be paused', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.led-panel [role=button]')).toHaveCount(50);
-  const led = page.getByRole('button', { name: 'ПР ТУ: выключен. Изменить состояние', exact: true });
+  const led = page.getByRole('button', { name: 'ПР ТУ: состояние не задано. Изменить состояние', exact: true });
   await led.focus(); await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'ПР ТУ: горит. Изменить состояние', exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Состояние индикатора' }).selectOption('blink');

@@ -19,7 +19,7 @@ const initialLed = (scenario, focusIndicators) => labels.find(label => scenario[
   ?? labels.find(label => Object.hasOwn(scenario, label))
   ?? focusIndicators.find(label => labels.includes(label)) ?? 'ПР ТУ';
 
-export default function Panel({ scenario = {}, expanded = false, onExpand, manual = {}, setManual, onSource, focusIndicators = [], contextNote = '', previewLabel = '', onResetPreview }) {
+export default function Panel({ scenario = {}, expanded = false, onExpand, manual = {}, setManual, onSource, focusIndicators = [], contextNote = '', previewLabel = '', previewKind, onResetPreview }) {
   const [selected, setSelected] = useState(() => initialLed(scenario, focusIndicators));
   const [bank, setBank] = useState(() => bankFor(initialLed(scenario, focusIndicators)));
   const [view, setView] = useState(() => expanded && !previewLabel && focusIndicators.length === 0 && window.innerWidth > 760 ? 'all' : 'section');
@@ -46,6 +46,10 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
   const sectionLabels = columns.slice(bank * 2, bank * 2 + 2).flat();
   const sectionActive = sectionLabels.filter(label => current[label] && current[label] !== 'off').length;
   const hasManual = Object.keys(manual).length > 0;
+  const shownLabels = view === 'all' ? labels : sectionLabels;
+  const knownCount = preset === 'scenario' ? shownLabels.filter(label => Object.hasOwn(current, label)).length : shownLabels.length;
+  const statusFor = label => current[label] ?? (preset === 'scenario' ? 'unknown' : 'off');
+  const locationOnly = preset === 'scenario' && previewKind === 'location' && !hasManual;
 
   function chooseLed(label) {
     setSelected(label);
@@ -90,6 +94,8 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
       <button className="ip-view-toggle" aria-pressed={view === 'all'} onClick={() => setView(view === 'all' ? 'section' : 'all')}><LayoutGrid size={15}/>{view === 'all' ? 'Крупнее по секциям' : 'Вся панель'}</button>
     </div>
 
+    {locationOnly && <p className="ip-location-note"><strong>Только расположение индикаторов</strong>В источнике режим ламп не указан. Свечение и мигание не показаны.</p>}
+
     <div className={`panel-housing ip-housing ip-${view} ${paused ? 'paused' : ''}`}>
       <svg viewBox={view === 'all' ? '0 0 1153 280' : banks[bank].viewBox} className="led-panel" aria-label="Векторная схема 50 светодиодов по фото 1">
         <defs>
@@ -120,13 +126,15 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
 
         {columns.map((column, ci) => column.map((label, ri) => {
           const x = xPositions[ci], y = yPositions[ri];
-          const status = current[label] ?? 'off';
+          const status = statusFor(label);
+          const statusText = status === 'unknown' ? 'состояние не задано' : stateLabels[status];
+          const glowing = status !== 'off' && status !== 'unknown';
           const isRight = ci % 2 === 1;
           const labelX = x + (isRight ? 17 : -18);
           const isVisible = view === 'all' || Math.floor(ci / 2) === bank;
           const focused = preset === 'scenario' && focusIndicators.includes(label);
-          return <g key={label} role="button" tabIndex={isVisible ? 0 : -1} aria-hidden={!isVisible} aria-label={`${label}: ${stateLabels[status]}. Изменить состояние`} onClick={() => cycleLed(label)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); cycleLed(label); } }} className={`led-cell ${selected === label ? 'selected' : ''} ${focused ? 'is-context-focus' : ''}`}>
-            <title>{label}: {stateLabels[status]}</title>
+          return <g key={label} role="button" tabIndex={isVisible ? 0 : -1} aria-hidden={!isVisible} aria-label={`${label}: ${statusText}. Изменить состояние`} onClick={() => cycleLed(label)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); cycleLed(label); } }} className={`led-cell ${selected === label ? 'selected' : ''} ${focused ? 'is-context-focus' : ''}`}>
+            <title>{label}: {statusText}</title>
             <rect x={x - 28} y={y - 21} width="56" height="43" rx="8" className="led-hit"/>
             <text x={labelX} y={y + 5} textAnchor={isRight ? 'start' : 'end'} className="panel-label">
               {label === 'ИНТЕР. ТС' ? <><tspan x={labelX} dy="0">ИНТЕР.</tspan><tspan x={labelX} dy="17">ТС</tspan></> : label === 'ПР ТУ' ? 'ПР. ТУ' : label}
@@ -135,9 +143,10 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
             {focused && <><circle cx={x} cy={y} r="15.8" className="ip-focus-underlay"/><circle cx={x} cy={y} r="15.8" className="ip-focus-ring"/></>}
             <circle cx={x} cy={y} r="13.5" fill={paint('rim')} stroke="#5d5b52" strokeWidth=".8"/>
             <circle cx={x} cy={y} r="11.7" fill={paint('off')}/>
-            <circle cx={x} cy={y} r="11.6" style={{ fill: paint(status === 'off' ? 'off' : 'on') }} className={`led-bulb ${status}`}/>
-            <path d={`M${x-8} ${y-7} Q${x-2} ${y-14} ${x+7} ${y-7}`} fill="none" stroke={status === 'off' ? '#69414d' : '#ffb0e8'} strokeWidth="1.8" opacity={status === 'off' ? '.23' : '.75'} className={status === 'blink' || status === 'fast' ? `led-glint ${status}` : ''}/>
-            {status !== 'off' && <ellipse cx={x-3} cy={y+4} rx="5.7" ry="5.3" fill="#fff8ff" opacity=".96" transform={`rotate(-22 ${x-3} ${y+4})`} className={`led-glint ${status}`}/>}
+            <circle cx={x} cy={y} r="11.6" style={{ fill: paint(glowing ? 'on' : 'off') }} className={`led-bulb ${status}`}/>
+            <path d={`M${x-8} ${y-7} Q${x-2} ${y-14} ${x+7} ${y-7}`} fill="none" stroke={glowing ? '#ffb0e8' : '#69414d'} strokeWidth="1.8" opacity={glowing ? '.75' : '.23'} className={status === 'blink' || status === 'fast' ? `led-glint ${status}` : ''}/>
+            {glowing && <ellipse cx={x-3} cy={y+4} rx="5.7" ry="5.3" fill="#fff8ff" opacity=".96" transform={`rotate(-22 ${x-3} ${y+4})`} className={`led-glint ${status}`}/>}
+            {status === 'unknown' && <path d={`M${x-4} ${y}h8`} className="led-unknown-mark"/>}
           </g>;
         }))}
       </svg>
@@ -146,7 +155,7 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
     {preset === 'scenario' && focusIndicators.length > 0 && <p className="ip-focus-caption"><i/> Обведены индикаторы для текущей проверки</p>}
 
     {preset === 'scenario' && (previewLabel || contextNote) && <div className={`ip-context ${previewLabel ? 'is-preview' : ''}`}>
-      {previewLabel ? <><span className="ip-context-label">ПРИМЕР ОТВЕТА</span><p>{previewLabel}</p>{contextNote && <p className="ip-context-detail">{contextNote}</p>}{onResetPreview && <button onClick={onResetPreview}><ChevronLeft size={14}/> К вопросу</button>}</> : <p>{contextNote}</p>}
+      {previewLabel ? <><span className="ip-context-label">{previewKind === 'location' ? 'РАСПОЛОЖЕНИЕ ИНДИКАТОРОВ' : 'ПРИМЕР ИНДИКАЦИИ'}</span><p>{previewLabel}</p>{contextNote && <p className="ip-context-detail">{contextNote}</p>}{onResetPreview && <button onClick={onResetPreview}><ChevronLeft size={14}/> К вопросу</button>}</> : <p>{contextNote}</p>}
     </div>}
 
     {view === 'section' ? <div className="ip-bank-navigation">
@@ -157,15 +166,16 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
 
     <div className="instrument-legend ip-legend">
       <span><i className="legend-led off"/> Выкл.</span><span><i className="legend-led on"/> Горит</span><span><i className={`legend-led blink ${paused ? 'paused' : ''}`}/> Мигает</span>
-      <span className="ip-active-count" aria-live="polite">{view === 'all' ? `${activeCount} / 50` : `${sectionActive} / 10`} активны</span>
+      {preset === 'scenario' && <span><i className="legend-led unknown">−</i> Не задано</span>}
+      <span className="ip-active-count" aria-live="polite">{knownCount < shownLabels.length ? `Задано: ${knownCount} / ${shownLabels.length}` : `${view === 'all' ? activeCount : sectionActive} / ${shownLabels.length} активны`}</span>
     </div>
 
     <div className="ip-manual-heading"><span>Настроить индикатор</span><button className="ip-reset" onClick={() => setManual({})} aria-label="Сбросить ручные изменения" title="Сбросить ручные изменения"><RotateCcw size={14}/><span>Сбросить</span></button></div>
     <div className="panel-control ip-controls">
       <label><span>Индикатор</span><select aria-label="Индикатор" value={selected} onChange={event => chooseLed(event.target.value)}>{labels.map(label => <option key={label}>{label}</option>)}</select></label>
-      <label><span>Состояние</span><select aria-label="Состояние индикатора" value={current[selected] ?? 'off'} onChange={event => setManual(previous => ({ ...previous, [selected]: event.target.value }))}><option value="off">Выключен</option><option value="on">Горит</option><option value="blink">Мигает</option><option value="fast">Часто мигает</option></select></label>
+      <label><span>Состояние</span><select aria-label="Состояние индикатора" value={statusFor(selected)} onChange={event => setManual(previous => ({ ...previous, [selected]: event.target.value }))}><option value="unknown" disabled>Не задано</option><option value="off">Выключен</option><option value="on">Горит</option><option value="blink">Мигает</option><option value="fast">Часто мигает</option></select></label>
     </div>
-    <p className="ip-caption">{hasManual ? 'Ручная настройка подсветки' : preset === 'photo' ? 'Статичное состояние с фотографии' : preset === 'clear' ? 'Все индикаторы выключены' : Object.keys(scenario).length ? 'Пример индикации выбранного признака' : 'Выберите симптом или настройте подсветку'}. <button onClick={onSource}>Фото 1 <ArrowUpRight size={13}/></button></p>
+    <p className="ip-caption">{hasManual ? 'Ручная настройка подсветки' : preset === 'photo' ? 'Статичное состояние с фотографии' : preset === 'clear' ? 'Все индикаторы выключены' : Object.keys(scenario).length ? 'Пример индикации выбранного признака' : focusIndicators.length ? 'Показано расположение; состояние ламп не задано' : 'Выберите симптом или настройте подсветку'}. <button onClick={onSource}>Фото 1 <ArrowUpRight size={13}/></button></p>
     <div className="ip-simulation"><span className="ip-simulation-dot"/>Симуляция · ритм условный · без подключения к оборудованию</div>
   </section>;
 }

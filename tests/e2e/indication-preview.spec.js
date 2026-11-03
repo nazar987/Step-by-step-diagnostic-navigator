@@ -45,7 +45,7 @@ test('Question focuses relevant LEDs; preview illustrates an answer without adva
   await expect(led(panel, 'ПР ТУ', 'горит')).toBeVisible();
   await panel.getByRole('button', { name: 'К вопросу', exact: true }).click();
   await expect(panel.locator('.ip-context.is-preview')).toHaveCount(0);
-  await expect(led(panel, 'ПР ТУ', 'выключен')).toHaveCount(1);
+  await expect(led(panel, 'ПР ТУ', 'состояние не задано')).toHaveCount(1);
   await expect(panel.locator('.is-context-focus[aria-hidden="false"]').first()).toBeVisible();
   expect(await route(page)).toEqual(before);
 
@@ -54,12 +54,12 @@ test('Question focuses relevant LEDs; preview illustrates an answer without adva
   await panel.getByRole('combobox', { name: 'Состояние индикатора' }).selectOption('on');
   await answer(page, 'Распределители ТС заторможены');
   await expect(page.locator('.question-heading h2')).toHaveText('Реле ЦС щёлкает?');
-  await expect(led(page.locator('.diagnostic-aside .indicator-panel'), 'ПР ТУ', 'выключен')).toHaveCount(1);
+  await expect(led(page.locator('.diagnostic-aside .indicator-panel'), 'ПР ТУ', 'состояние не задано')).toHaveCount(1);
 });
 
 test('Normal-indication preview keeps the missing reference-pattern explanation visible', async ({ page }) => {
   await openLp(page);
-  await page.getByRole('button', { name: previewName('Индикация нормальная'), exact: true }).click();
+  await page.getByRole('button', { name: 'Найти индикаторы на панели: Индикация нормальная', exact: true }).click();
   const panel = page.locator('.diagnostic-aside .indicator-panel');
   await expect(panel.locator('.ip-context')).toContainText('Индикация нормальная');
   await expect(panel.locator('.ip-context-detail')).toContainText(/эталон|нормальн|не задан/i);
@@ -97,7 +97,62 @@ for (const width of [320, 390]) {
     await expect(page.locator('.question-heading h2')).toHaveText(lpQuestion);
     await answer(page, 'Распределители ТС заторможены');
     await expect(page.locator('.question-heading h2')).toHaveText('Реле ЦС щёлкает?');
-    await expect(led(page.locator('.diagnostic-aside .indicator-panel'), 'ВКЛ. ЛГ', 'выключен')).toHaveCount(1);
+    await expect(led(page.locator('.diagnostic-aside .indicator-panel'), 'ВКЛ. ЛГ', 'состояние не задано')).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
+
+for (const width of [1440, 390]) {
+  test(`Missing-group location ${width}px: unknown lamps stay distinct from off and manual states`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1050 });
+    await page.goto('/');
+    await answer(page, 'Отсутствует или появилась лишняя группа');
+    const label = 'Отсутствует одна или несколько групп';
+    await expect(page.getByRole('button', { name: previewName(label), exact: true })).toHaveCount(0);
+    const before = await route(page);
+    await page.getByRole('button', { name: `Найти индикаторы на панели: ${label}`, exact: true }).click();
+    const panel = width < 1100 ? page.getByRole('dialog').locator('.indicator-panel') : page.locator('.diagnostic-aside .indicator-panel');
+    await expect(panel.locator('.ip-location-note')).toContainText('В источнике режим ламп не указан');
+    await expect(panel.locator('.ip-context-label')).toHaveText('РАСПОЛОЖЕНИЕ ИНДИКАТОРОВ');
+    await expect(led(panel, 'ГР1', 'состояние не задано')).toBeVisible();
+    await expect(panel.locator('.led-bulb.unknown')).toHaveCount(50);
+    await expect(panel.locator('.led-bulb.off, .led-bulb.on, .led-bulb.blink, .led-bulb.fast')).toHaveCount(0);
+    await expect(panel.getByRole('combobox', { name: 'Состояние индикатора' })).toHaveValue('unknown');
+    await expect(panel.locator('.ip-active-count')).toHaveText('Задано: 0 / 10');
+    expect(await route(page)).toEqual(before);
+
+    await panel.getByRole('combobox', { name: 'Состояние индикатора' }).selectOption('on');
+    await expect(panel.locator('.ip-location-note')).toHaveCount(0);
+    await expect(panel.locator('.ip-active-count')).toHaveText('Задано: 1 / 10');
+    await panel.getByRole('button', { name: 'Сбросить ручные изменения' }).click();
+    await expect(panel.locator('.ip-location-note')).toBeVisible();
+    await expect(panel.locator('.led-bulb.unknown')).toHaveCount(50);
+
+    await panel.getByRole('button', { name: 'Все выключены', exact: true }).click();
+    await expect(panel.locator('.led-bulb.off')).toHaveCount(50);
+    await expect(panel.locator('.ip-location-note')).toHaveCount(0);
+    await expect(panel.locator('.ip-active-count')).toHaveText('0 / 10 активны');
+    await panel.getByRole('button', { name: 'Текущий шаг', exact: true }).click();
+    await expect(panel.locator('.ip-location-note')).toBeVisible();
+    await expect(panel.locator('.led-bulb.unknown')).toHaveCount(50);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
+
+test('Documented off and blinking previews still demonstrate their actual states', async ({ page }) => {
+  await page.goto('/');
+  await answer(page, 'Нет ТУ, приём ЦС нормальный');
+  const panel = page.locator('.diagnostic-aside .indicator-panel');
+  await expect(panel.locator('.led-bulb.unknown')).toHaveCount(50);
+  // The answer, unlike the question, explicitly describes ПР ТУ going off.
+  await page.getByRole('button', { name: previewName('Да, ПР ТУ гаснет'), exact: true }).click();
+  await expect(led(panel, 'ПР ТУ', 'выключен')).toBeVisible();
+  await expect(panel.locator('.led-bulb.unknown')).toHaveCount(49);
+  await expect(panel.locator('.ip-active-count')).toHaveText('Задано: 1 / 10');
+  await expect(panel.locator('.ip-location-note')).toHaveCount(0);
+
+  await page.getByRole('navigation', { name: 'Разделы диагностики' }).getByRole('button', { name: /Контроль ЛП/ }).click();
+  await page.getByRole('button', { name: previewName('Сбой периодический; периодически горят Г1–Г8'), exact: true }).click();
+  await expect(led(panel, 'Г1', 'мигает')).toBeVisible();
+  expect(await panel.locator('.led-bulb.blink').first().evaluate(el => getComputedStyle(el).animationName)).toBe('ip-blink');
+});

@@ -90,24 +90,24 @@ export function getAnswerPreview(fromId, nextId) {
   const from = graph[fromId];
   const next = graph[nextId];
   if (!next || !from?.options?.some(option => option.next === nextId)) return {
-    scenario: {}, focusIndicators: [], note: 'Для этого перехода нет описания индикации.', available: false,
+    scenario: {}, focusIndicators: [], note: 'Для этого перехода нет описания индикации.', kind: 'none', available: false,
   };
 
   const context = getIndicationContext(nextId);
   const ownPattern = next.panel ?? {};
+  const hasOwnPattern = Object.keys(ownPattern).length > 0;
   const inherited = Object.assign({}, ...(findPath(fromId) ?? []).map(id => graph[id].panel ?? {}));
   // Эти ответы не описывают состояние панели. Общий рисунок родительского
   // вопроса не должен превращаться в якобы наблюдаемое погасание ламп.
-  const scenario = normalNodes.has(nextId) || offPanelNodes[nextId]
+  const scenario = fromId === 'start' || !hasOwnPattern || normalNodes.has(nextId) || offPanelNodes[nextId]
     ? {}
     : Object.fromEntries(Object.entries({ ...inherited, ...ownPattern }).filter(([label]) => labels.includes(label)));
-  const hasOwnPattern = Object.keys(ownPattern).length > 0;
   const hasPattern = Object.keys(scenario).length > 0;
   const focusIndicators = unique([...context.focusIndicators, ...Object.keys(scenario)]);
   const notes = [context.note];
-  if (hasPattern && !hasOwnPattern) notes.push('Состояние показанных ламп унаследовано с предыдущего шага; отдельный рисунок для этого ответа не описан.');
   if (next.note) notes.push(next.note);
   if (hasPattern) notes.push('Мигание условное: эталонная частота и циклограмма в исходнике не заданы.');
 
-  return { scenario, focusIndicators, note: notes.join(' '), available: hasPattern || focusIndicators.length > 0 };
+  const kind = hasPattern ? 'pattern' : focusIndicators.length > 0 ? 'location' : 'none';
+  return { scenario, focusIndicators, note: notes.join(' '), kind, available: kind !== 'none' };
 }

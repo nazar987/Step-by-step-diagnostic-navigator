@@ -29,6 +29,8 @@
 .indicator-panel .ip-presets button.active { color: #203c23; background: var(--ip-accent); box-shadow: 0 2px 5px #0002; }
 .indicator-panel .ip-context { margin: 13px 0 8px; padding: 12px 13px; background: #254335; border: 1px solid #466448; border-radius: 9px; color: #d9e7d6; font-size: 12px; line-height: 1.65; }
 .indicator-panel .ip-context p { margin: 0; }
+.indicator-panel .ip-location-note { margin: 4px 0 12px; padding: 10px 12px; border-left: 2px solid var(--ip-accent); color: #bed0c1; font-size: 12px; line-height: 1.6; }
+.indicator-panel .ip-location-note strong { display: block; color: #e2f1d9; font-weight: 600; margin-bottom: 2px; }
 .indicator-panel .ip-context .ip-context-detail { margin-top: 8px; color: #c1d7c2; font-size: 12px; line-height: 1.65; }
 .indicator-panel .ip-context-label { display: block; color: #c9e6b3; font-size: 9px; letter-spacing: 1.3px; margin-bottom: 5px; }
 .indicator-panel .ip-context button { display: flex; align-items: center; min-height: 44px; gap: 3px; padding: 0; background: none; color: #d6efbf; border: 0; font-size: 12px; margin-top: 2px; }
@@ -54,6 +56,7 @@
 .indicator-panel .ip-focus-caption i { display: inline-block; height: 9px; width: 9px; border: 1.5px dashed #dcf5a4; border-radius: 50%; flex-shrink: 0; }
 .indicator-panel .panel-label { font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif; font-size: 15.5px; font-stretch: condensed; font-weight: 700; letter-spacing: -.55px; fill: #20251f; pointer-events: none; }
 .indicator-panel .led-bulb.off { filter: none; }
+.indicator-panel .led-unknown-mark { stroke: #b5bcb3; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
 .indicator-panel .led-bulb.on, .indicator-panel .led-bulb.blink, .indicator-panel .led-bulb.fast { filter: drop-shadow(0 0 3px #ff008780); }
 .indicator-panel .led-bulb.blink, .indicator-panel .led-glint.blink { animation: ip-blink 1.2s steps(1, end) infinite; }
 .indicator-panel .led-bulb.fast, .indicator-panel .led-glint.fast { animation: ip-blink .38s steps(1, end) infinite; opacity: .78; }
@@ -68,6 +71,7 @@
 .indicator-panel .ip-legend>span { display: inline-flex; align-items: center; gap: 5px; }
 .indicator-panel .legend-led { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .indicator-panel .legend-led.off { background: #4b5e52; border: 1px solid #8fa58c; }
+.indicator-panel .legend-led.unknown { width: 12px; height: 12px; display: inline-grid; place-items: center; color: #d3ded0; background: #261016; font: 12px/1 monospace; }
 .indicator-panel .legend-led.on, .indicator-panel .legend-led.blink { background: #ff88d4; box-shadow: 0 0 6px #ff2ca040; }
 .indicator-panel .legend-led.blink { animation: ip-blink 1.2s steps(1, end) infinite; }
 .indicator-panel .ip-active-count { margin-left: auto; font-size: 11px; color: #a3baaa; white-space: nowrap; }
