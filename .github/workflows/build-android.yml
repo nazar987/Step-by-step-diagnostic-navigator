@@ -1,0 +1,210 @@
+name: Build unsigned Android release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    name: Android release APK for local signing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Validate release version
+        id: release
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+
+          version = json.loads(pathlib.Path('package.json').read_text(encoding='utf-8'))['version']
+          if not re.fullmatch(r'\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', version):
+              raise SystemExit('package.json must contain a filename-safe semantic release version')
+          lock = json.loads(pathlib.Path('package-lock.json').read_text(encoding='utf-8'))
+          if lock.get('version') != version or lock.get('packages', {}).get('', {}).get('version') != version:
+              raise SystemExit('package.json and package-lock.json versions differ')
+          ref = os.environ['GITHUB_REF']
+          if ref.startswith('refs/tags/') and ref != f'refs/tags/v{version}':
+              raise SystemExit('Release tag does not match package.json version')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'version={version}\n')
+              output.write(f'filename=DC-Navigator-{version}-Android-unsigned.apk\n')
+          print(f'Building Android release {version}; the APK will require local signing.')
+          PY
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate diagnostic data
+        run: npm test
+
+      - name: Build and synchronize bundled web application
+        run: npm run android:sync
+
+      - name: Set up Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # ubuntu-24.04 supplies Android command-line tools and ANDROID_HOME.
+      # Explicitly install the platform and Build Tools used by this release.
+      - name: Prepare Android SDK 36
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_HOME:-}"
+          sdk_manager="$(command -v sdkmanager)"
+          { yes || true; } | "$sdk_manager" --sdk_root="$ANDROID_HOME" --licenses > /dev/null
+          "$sdk_manager" --sdk_root="$ANDROID_HOME" --install \
+            'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+          test -x "$ANDROID_HOME/build-tools/36.0.0/aapt"
+
+      # Signing keys and passwords are intentionally absent from this workflow.
+      # The resulting APK is signed and cryptographically verified locally.
+      - name: Assemble and lint unsigned release
+        working-directory: android
+        run: bash ./gradlew --no-daemon --no-configuration-cache --console=plain assembleRelease lintRelease
+
+      - name: Verify release metadata and bundled assets
+        env:
+          APP_VERSION: ${{ steps.release.outputs.version }}
+          APK_FILENAME: ${{ steps.release.outputs.filename }}
+        run: |
+          set -euo pipefail
+          source_apk='android/app/build/outputs/apk/release/app-release-unsigned.apk'
+          test -s "$source_apk"
+          mkdir -p release/android
+          cp -- "$source_apk" "release/android/$APK_FILENAME"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging \
+            "release/android/$APK_FILENAME" > "$RUNNER_TEMP/android-badging.txt"
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import re
+          import zipfile
+
+          apk = pathlib.Path('release/android') / os.environ['APK_FILENAME']
+          version = os.environ['APP_VERSION']
+          badging = (pathlib.Path(os.environ['RUNNER_TEMP']) / 'android-badging.txt').read_text(encoding='utf-8')
+          config = json.loads(pathlib.Path('capacitor.config.json').read_text(encoding='utf-8'))
+          metadata = json.loads(pathlib.Path('android/app/build/outputs/apk/release/output-metadata.json').read_text(encoding='utf-8'))
+
+          def field(pattern, description):
+              match = re.search(pattern, badging, re.MULTILINE)
+              if not match:
+                  raise SystemExit(f'Missing {description} in aapt badging')
+              return match.group(1)
+
+          package_id = field(r"^package: name='([^']+)'", 'application ID')
+          version_name = field(r"^package:.*\bversionName='([^']+)'", 'version name')
+          version_code = int(field(r"^package:.*\bversionCode='(\d+)'", 'version code'))
+          min_sdk = int(field(r"^sdkVersion:'(\d+)'", 'minimum SDK'))
+          target_sdk = int(field(r"^targetSdkVersion:'(\d+)'", 'target SDK'))
+          if package_id != config['appId'] or metadata.get('applicationId') != package_id:
+              raise SystemExit('APK application ID does not match the Capacitor project')
+          if version_name != version or version_code < 1:
+              raise SystemExit('APK version does not match the requested release')
+          if min_sdk != 24 or target_sdk != 36:
+              raise SystemExit(f'Unexpected Android SDK range: min={min_sdk}, target={target_sdk}')
+          if re.search(r'^application-debuggable\s*$', badging, re.MULTILINE):
+              raise SystemExit('Release APK has android:debuggable enabled')
+          if metadata.get('variantName') != 'release':
+              raise SystemExit('Gradle output metadata is not for the release variant')
+          outputs = [item for item in metadata.get('elements', []) if item.get('outputFile') == 'app-release-unsigned.apk']
+          if len(outputs) != 1 or outputs[0].get('versionName') != version_name or outputs[0].get('versionCode') != version_code:
+              raise SystemExit('Gradle output metadata and APK version disagree')
+
+          required = ['assets/public/index.html'] + [f'assets/public/sources/photo-{i}.png' for i in range(1, 6)]
+          with zipfile.ZipFile(apk) as archive:
+              damaged = archive.testzip()
+              if damaged:
+                  raise SystemExit(f'APK contains a corrupt ZIP entry: {damaged}')
+              names = set(archive.namelist())
+              for filename in required:
+                  if filename not in names or archive.getinfo(filename).file_size == 0:
+                      raise SystemExit(f'Missing or empty bundled asset: {filename}')
+              for filename in required[1:]:
+                  if not archive.read(filename).startswith(b'\x89PNG\r\n\x1a\n'):
+                      raise SystemExit(f'Bundled source is not a PNG image: {filename}')
+              index = archive.read(required[0]).decode('utf-8')
+              referenced_assets = re.findall(r'(?:src|href)=[\"\'](?:\./)?(assets/[^\"\']+)[\"\']', index)
+              if not any(asset.endswith('.js') for asset in referenced_assets):
+                  raise SystemExit('Bundled index.html does not reference a production JavaScript bundle')
+              if not any(asset.endswith('.css') for asset in referenced_assets):
+                  raise SystemExit('Bundled index.html does not reference a stylesheet')
+              for asset in referenced_assets:
+                  filename = f'assets/public/{asset}'
+                  if filename not in names or archive.getinfo(filename).file_size == 0:
+                      raise SystemExit(f'Missing compiled web asset: {filename}')
+
+          digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+          lines = [
+              'Android release verification',
+              'SIGNATURE STATUS: UNSIGNED — local signing and apksigner verification are required.',
+              f'APK: {apk.name}',
+              f'Commit: {os.environ["GITHUB_SHA"]}',
+              f'Ref: {os.environ["GITHUB_REF"]}',
+              f'Application ID: {package_id}',
+              f'Version name: {version_name}',
+              f'Version code: {version_code}',
+              'Build variant: release',
+              'Debuggable: false (aapt application-debuggable flag is absent)',
+              f'Minimum SDK: {min_sdk}',
+              f'Target SDK: {target_sdk}',
+              'Build Tools used for verification: 36.0.0',
+              f'SHA-256 (unsigned APK): {digest}',
+              'Bundled index.html: verified',
+              f'Bundled JS/CSS references: {len(referenced_assets)} verified',
+              'Bundled original photographs: photo-1.png through photo-5.png verified',
+              'ZIP CRC integrity: passed',
+              'Gradle tasks: assembleRelease and lintRelease passed',
+              '',
+              '--- aapt dump badging ---',
+              badging.rstrip(),
+              '',
+          ]
+          report = '\n'.join(lines)
+          pathlib.Path('release/android/android-verification.txt').write_text(report, encoding='utf-8')
+          print(report)
+          PY
+
+      - name: Upload unsigned APK and verification report
+        if: ${{ success() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-unsigned
+          path: |
+            release/android/${{ steps.release.outputs.filename }}
+            release/android/android-verification.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

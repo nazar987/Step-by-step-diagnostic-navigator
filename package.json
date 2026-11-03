@@ -1,6 +1,6 @@
 {
   "name": "step-by-step-diagnostic-navigator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Пошаговая памятка диагностики устройств ДЦ",
   "type": "module",
@@ -11,7 +11,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "desktop:dev": "node scripts/desktop-dev.mjs",
     "desktop": "node scripts/ensure-electron.mjs && npm run build && electron .",
-    "desktop:pack": "npm run build && electron-builder --win portable",
+    "desktop:pack": "node scripts/ensure-electron.mjs && npm run build && electron-builder --win portable --x64 --publish never",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
     "test": "node --test tests/graph.test.js tests/indication.test.js",
@@ -44,8 +44,15 @@
       "package.json"
     ],
     "win": {
-      "target": "portable",
-      "artifactName": "DC-Navigator-${version}.${ext}",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "DC-Navigator-${version}-Windows-${arch}.${ext}",
       "icon": "build/icon.ico",
       "signAndEditExecutable": false
     }

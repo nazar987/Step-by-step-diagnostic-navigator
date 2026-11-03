@@ -14,3 +14,8 @@ android/app/src/main/assets/public/
 android/capacitor-cordova-android-plugins/
 *.keystore
 *.jks
+
+# Local Android signing key and Windows-protected password backup
+.release-signing/
+*.p12
+*.pfx
