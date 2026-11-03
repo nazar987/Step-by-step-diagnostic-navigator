@@ -1,4 +1,4 @@
-import { graph, findPath } from './diagnostics.js';
+import { graph, findPath, normalIndicationDefinition } from './diagnostics.js';
 import { labels } from './panel.js';
 
 // Фокус — куда смотреть. Он не задаёт состояние лампы и не описывает норму.
@@ -75,7 +75,7 @@ export function getIndicationContext(nodeId) {
   const inheritedFocus = contexts[parentId]?.focusIndicators ?? [];
   if (normalNodes.has(nodeId)) return {
     focusIndicators: unique(inheritedFocus),
-    note: 'Эталон нормальной индикации в исходнике не задан. Выделение показывает только связанные индикаторы; их состояние не имитируется.',
+    note: `${normalIndicationDefinition} Само по себе это не исключает неисправность. Эталон нормальной индикации в исходнике не задан: какие лампы горят, погашены или мигают и в какой последовательности. Выделение показывает только связанные индикаторы; их состояние не имитируется.`,
   };
   const ownPattern = Object.keys(node.panel ?? {});
   return {
