@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GitBranch, ChevronRight, ArrowUpRight, Search, ChevronsUpDown, FileImage, X } from 'lucide-react';
+import { ListTree, ChevronRight, ArrowRight, Search, FoldVertical, UnfoldVertical, FileImage, X, SearchX, RotateCcw } from 'lucide-react';
 import { graph, categories, subtreeMatches, resultsCount } from '../data/diagnostics.js';
 import './tree.css';
 
@@ -40,11 +40,11 @@ function Branch({ id, label, onNavigate, query, collapsed, onToggle }) {
           aria-label={`${open ? 'Свернуть' : 'Развернуть'} ветку: ${node.title}`}
           onClick={() => onToggle(id)}
         >
-          <ChevronRight size={18} className={open ? 'rotated' : ''} />
+          <ChevronRight size={18} className={open ? 'rotated' : ''} aria-hidden="true" />
         </button>
         <button className="tree-node-link tree-question-link" onClick={() => onNavigate(id)}>
           <span>{label ?? node.title}</span>
-          <ArrowUpRight size={16} aria-hidden="true" />
+          <ArrowRight size={16} aria-hidden="true" />
         </button>
       </div>
       {label && label !== node.title && <p className="tree-question-text">{node.title}</p>}
@@ -60,7 +60,7 @@ function Branch({ id, label, onNavigate, query, collapsed, onToggle }) {
         />)}
       </ul>
     </> : <button className="tree-node-link tree-result-link" onClick={() => onNavigate(id)}>
-      <span className="tree-result-condition"><span className="tree-terminal-dot" />{label ?? node.title}<ArrowUpRight size={16} aria-hidden="true" /></span>
+      <span className="tree-result-condition"><span className="tree-terminal-dot" />{label ?? node.title}<ArrowRight size={16} aria-hidden="true" /></span>
       {label && label !== node.title && <span className="tree-result-title">{node.title}</span>}
       <span className="tree-result-source"><FileImage size={13} aria-hidden="true" />Фото {node.sourceIds.join(', ')}<span className="tree-result-action">Открыть результат</span></span>
     </button>}
@@ -100,7 +100,7 @@ export default function Tree({ onNavigate }) {
   }
 
   return <div className="tree-view">
-    <div className="page-eyebrow"><GitBranch size={15} /> ОБЩАЯ КАРТА</div>
+    <div className="page-eyebrow"><ListTree size={15} aria-hidden="true" /> ОБЩАЯ КАРТА</div>
     <h1>Всё дерево диагностики<span className="accent-dot">.</span></h1>
     <p className="page-description">Проследите путь от симптома к возможной причине. Любой узел можно открыть в пошаговом режиме.</p>
 
@@ -108,7 +108,7 @@ export default function Tree({ onNavigate }) {
       <label className="search-box tree-search">
         <Search size={19} aria-hidden="true" />
         <input value={query} onChange={event => changeQuery(event.target.value)} placeholder="Симптом, блок или индикатор" aria-label="Поиск по дереву" />
-        {query && <button className="tree-search-clear" type="button" aria-label="Очистить поиск по дереву" onClick={() => changeQuery('')}><X size={17} /></button>}
+        {query && <button className="tree-search-clear" type="button" aria-label="Очистить поиск по дереву" onClick={() => changeQuery('')}><X size={17} aria-hidden="true" /></button>}
       </label>
       <label className="tree-filter">
         <span className="sr-only">Раздел дерева</span>
@@ -118,18 +118,18 @@ export default function Tree({ onNavigate }) {
         </select>
       </label>
       <button className="button secondary tree-expand-all" onClick={() => setActiveCollapsed(allCollapsed ? new Set() : new Set(questionIds))}>
-        <ChevronsUpDown size={17} />{allCollapsed ? 'Развернуть всё' : 'Свернуть всё'}
+        {allCollapsed ? <UnfoldVertical size={17} aria-hidden="true" /> : <FoldVertical size={17} aria-hidden="true" />}{allCollapsed ? 'Развернуть всё' : 'Свернуть всё'}
       </button>
     </div>
 
     <div className="tree-root">
-      <span className="tree-root-icon"><GitBranch size={25} /></span>
+      <span className="tree-root-icon"><ListTree size={25} aria-hidden="true" /></span>
       <div><strong>Диагностика устройств ДЦ</strong><span>{categories.length} разделов <i /> {resultsCount} результатов <i /> 5 фотографий</span></div>
       <span className="tree-root-tag">КАРТА ПРИЗНАКОВ</span>
     </div>
     {(normalizedQuery || filter !== 'all') && <div className="tree-filter-status" role="status">
       <span>Показано разделов: <strong>{visible.length} из {categories.length}</strong>{normalizedQuery && <> · Поиск «{query.trim()}»</>}</span>
-      <button className="text-button" onClick={resetFilters}>Сбросить фильтры</button>
+      <button className="text-button" onClick={resetFilters}><RotateCcw size={15} aria-hidden="true" />Сбросить фильтры</button>
     </div>}
 
     <div className="tree-grid">
@@ -137,12 +137,12 @@ export default function Tree({ onNavigate }) {
         <header>
           <span className="branch-index">{String(categories.indexOf(category) + 1).padStart(2, '0')}</span>
           <div className="tree-group-heading"><h2 id={`tree-group-${category.next}`}>{category.label}</h2><span>{resultLabel(resultCount(category.next))}</span></div>
-          <button className="icon-button tree-group-open" aria-label={`Открыть раздел: ${category.label}`} title="Открыть в пошаговом режиме" onClick={() => onNavigate(category.next)}><ArrowUpRight size={19} /></button>
+          <button className="icon-button tree-group-open" aria-label={`Открыть раздел: ${category.label}`} title="Открыть в пошаговом режиме" onClick={() => onNavigate(category.next)}><ArrowRight size={19} aria-hidden="true" /></button>
         </header>
         <ul className="tree-branches"><Branch id={category.next} onNavigate={onNavigate} query={normalizedQuery && category.label.toLocaleLowerCase('ru').includes(normalizedQuery) ? '' : normalizedQuery} collapsed={activeCollapsed} onToggle={toggle} /></ul>
       </section>)}
     </div>
 
-    {!visible.length && <div className="empty-state tree-empty"><span className="tree-empty-icon"><Search size={28} /></span><h2>Совпадений нет</h2><p>Попробуйте другое обозначение блока или выберите все разделы.</p><button className="button secondary" onClick={resetFilters}>Сбросить поиск</button></div>}
+    {!visible.length && <div className="empty-state tree-empty"><span className="tree-empty-icon"><SearchX size={28} aria-hidden="true" /></span><h2>Совпадений нет</h2><p>Попробуйте другое обозначение блока или выберите все разделы.</p><button className="button secondary" onClick={resetFilters}><RotateCcw size={16} aria-hidden="true" />Сбросить поиск</button></div>}
   </div>;
 }

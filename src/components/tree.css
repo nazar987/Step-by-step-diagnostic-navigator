@@ -222,6 +222,17 @@
   overflow-wrap: anywhere;
 }
 .tree-view .tree-node-link svg { opacity: 1; }
+.tree-view .tree-question-link > svg,
+.tree-view .tree-group-open > svg,
+.tree-view .tree-result-condition > svg {
+  flex-shrink: 0;
+  transition: transform .16s ease;
+}
+.tree-view .tree-question-link:hover > svg,
+.tree-view .tree-group-open:hover > svg,
+.tree-view .tree-result-link:hover .tree-result-condition > svg {
+  transform: translateX(2px);
+}
 .tree-view .tree-question-link {
   display: flex;
   align-items: center;
@@ -304,5 +315,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tree-view .tree-toggle svg { transition: none; }
+  .tree-view .tree-toggle svg,
+  .tree-view .tree-question-link > svg,
+  .tree-view .tree-group-open > svg,
+  .tree-view .tree-result-condition > svg { transition: none; }
+  .tree-view .tree-question-link:hover > svg,
+  .tree-view .tree-group-open:hover > svg,
+  .tree-view .tree-result-link:hover .tree-result-condition > svg { transform: none; }
 }

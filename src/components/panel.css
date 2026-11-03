@@ -24,12 +24,15 @@
 .indicator-panel .ip-icon-button:disabled:hover { background: #203d31; border-color: #3e5a4e; }
 .indicator-panel button:focus-visible, .indicator-panel select:focus-visible { outline: 2px solid var(--ip-accent); outline-offset: 3px; }
 .indicator-panel .ip-presets { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px; gap: 3px; margin: 23px 0 12px; border: 1px solid #2e4d3e; border-radius: 11px; background: #0c221a; }
-.indicator-panel .ip-presets button { min-width: 0; min-height: 44px; padding: 7px 5px; font-size: 12px; font-weight: 500; line-height: 1.4; border: 0; border-radius: 7px; background: none; color: #b3c8ba; }
+.indicator-panel .ip-presets button { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; min-width: 0; min-height: 44px; padding: 7px 5px; font-size: 12px; font-weight: 500; line-height: 1.4; border: 0; border-radius: 7px; background: none; color: #b3c8ba; }
+.indicator-panel .ip-presets button>span { min-width: 0; text-align: center; }
+.indicator-panel .ip-presets .lucide { flex-shrink: 0; }
 .indicator-panel .ip-presets button:hover { color: #f5fff0; background: #243f2e; }
 .indicator-panel .ip-presets button.active { color: #203c23; background: var(--ip-accent); box-shadow: 0 2px 5px #0002; }
 .indicator-panel .ip-context { margin: 13px 0 8px; padding: 12px 13px; background: #254335; border: 1px solid #466448; border-radius: 9px; color: #d9e7d6; font-size: 12px; line-height: 1.65; }
 .indicator-panel .ip-context p { margin: 0; }
-.indicator-panel .ip-location-note { margin: 4px 0 12px; padding: 10px 12px; border-left: 2px solid var(--ip-accent); color: #bed0c1; font-size: 12px; line-height: 1.6; }
+.indicator-panel .ip-location-note { display: flex; align-items: flex-start; gap: 9px; margin: 4px 0 12px; padding: 10px 12px; border-left: 2px solid var(--ip-accent); color: #bed0c1; font-size: 12px; line-height: 1.6; }
+.indicator-panel .ip-location-note>.lucide { flex-shrink: 0; margin-top: 1px; color: #d3eebc; }
 .indicator-panel .ip-location-note strong { display: block; color: #e2f1d9; font-weight: 600; margin-bottom: 2px; }
 .indicator-panel .ip-context .ip-context-detail { margin-top: 8px; color: #c1d7c2; font-size: 12px; line-height: 1.65; }
 .indicator-panel .ip-context-label { display: block; color: #c9e6b3; font-size: 9px; letter-spacing: 1.3px; margin-bottom: 5px; }
@@ -53,7 +56,7 @@
 .indicator-panel .ip-focus-underlay { fill: none; stroke: #2c4d2b; stroke-width: 2.8px; }
 .indicator-panel .ip-focus-ring { fill: none; stroke: #dcf5a4; stroke-width: 1.8px; stroke-dasharray: 4 3; }
 .indicator-panel .ip-focus-caption { margin: 10px 0 2px; display: flex; align-items: center; gap: 7px; font-size: 11px; line-height: 1.5; color: #bfd6b2; }
-.indicator-panel .ip-focus-caption i { display: inline-block; height: 9px; width: 9px; border: 1.5px dashed #dcf5a4; border-radius: 50%; flex-shrink: 0; }
+.indicator-panel .ip-focus-caption>.lucide { color: #dcf5a4; flex-shrink: 0; }
 .indicator-panel .panel-label { font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif; font-size: 15.5px; font-stretch: condensed; font-weight: 700; letter-spacing: -.55px; fill: #20251f; pointer-events: none; }
 .indicator-panel .led-bulb.off { filter: none; }
 .indicator-panel .led-unknown-mark { stroke: #b5bcb3; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
@@ -69,13 +72,15 @@
 .indicator-panel .ip-scroll-hint { font-size: 12px; color: #b2c6b6; line-height: 1.6; margin: 12px 0 5px; }
 .indicator-panel .ip-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 0 17px; margin: 0; border-bottom: 1px solid #375246; color: #bed0c1; font-size: 11px; }
 .indicator-panel .ip-legend>span { display: inline-flex; align-items: center; gap: 5px; }
-.indicator-panel .legend-led { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.indicator-panel .legend-led.off { background: #4b5e52; border: 1px solid #8fa58c; }
-.indicator-panel .legend-led.unknown { width: 12px; height: 12px; display: inline-grid; place-items: center; color: #d3ded0; background: #261016; font: 12px/1 monospace; }
-.indicator-panel .legend-led.on, .indicator-panel .legend-led.blink { background: #ff88d4; box-shadow: 0 0 6px #ff2ca040; }
-.indicator-panel .legend-led.blink { animation: ip-blink 1.2s steps(1, end) infinite; }
+.indicator-panel .ip-state-icon { flex-shrink: 0; }
+.indicator-panel .ip-state-off { color: #acbfb1; }
+.indicator-panel .ip-state-on, .indicator-panel .ip-state-blink { color: #ff9bd9; }
+.indicator-panel .ip-state-blink { animation: ip-blink 1.2s steps(1, end) infinite; }
+.indicator-panel .ip-state-unknown { color: #d3ded0; }
 .indicator-panel .ip-active-count { margin-left: auto; font-size: 11px; color: #a3baaa; white-space: nowrap; }
 .indicator-panel .ip-manual-heading { display: flex; align-items: center; justify-content: space-between; gap: 5px; padding-top: 7px; font-size: 12px; color: #c2d3c6; }
+.indicator-panel .ip-manual-heading>span { display: inline-flex; align-items: center; gap: 7px; }
+.indicator-panel .ip-manual-heading>span>.lucide { flex-shrink: 0; color: #b8d3bc; }
 .indicator-panel .ip-reset { display: inline-flex; gap: 6px; align-items: center; min-height: 44px; border: 0; background: none; padding: 0 0 0 8px; color: #c7dfb8; font-size: 11px; }
 .indicator-panel .ip-reset:hover { color: #fff; }
 .indicator-panel .ip-controls { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 10px; margin: 0; max-width: none; }
@@ -83,9 +88,9 @@
 .indicator-panel .ip-controls label>span { display: block; font-size: 11px; line-height: 1.5; color: #a5bdac; margin-bottom: 5px; }
 .indicator-panel .ip-controls select { display: block; width: 100%; min-width: 0; min-height: 46px; padding: 10px 24px 10px 10px; font: 13px "Segoe UI", Arial, sans-serif; line-height: 1.5; color: #f1f5e9; background: #243e31; border: 1px solid #4b6555; border-radius: 9px; }
 .indicator-panel .ip-caption { color: #b3c6b7; font-size: 12px; line-height: 1.75; margin: 15px 0 17px; }
-.indicator-panel .ip-caption button { display: inline-flex; align-items: center; gap: 2px; background: none; border: 0; padding: 0; min-height: 44px; color: #d3edba; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.indicator-panel .ip-caption button { display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; padding: 0; min-height: 44px; color: #d3edba; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
 .indicator-panel .ip-simulation { margin: 0 -20px; padding: 14px 20px; display: flex; align-items: flex-start; gap: 7px; color: #a7c0ad; background: #0e241b; border-top: 1px solid #2c4939; font-size: 10px; line-height: 1.6; }
-.indicator-panel .ip-simulation-dot { width: 5px; height: 5px; flex-shrink: 0; margin-top: 5px; border-radius: 50%; background: #9abd83; }
+.indicator-panel .ip-simulation>.lucide { flex-shrink: 0; margin-top: 1px; color: #b9d7a3; }
 .indicator-panel.instrument-expanded { padding: 24px 24px 0; }
 .indicator-panel.instrument-expanded .ip-simulation { margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
 .indicator-panel.instrument-expanded .ip-presets { max-width: 520px; }
@@ -97,7 +102,7 @@
   .indicator-panel .ip-header h3 { font-size: 16px; }
   .indicator-panel .ip-eyebrow { font-size: 9px; }
   .indicator-panel .ip-header-actions { gap: 3px; }
-  .indicator-panel .ip-presets button { font-size: 11px; padding: 7px 3px; }
+  .indicator-panel .ip-presets button { flex-direction: column; flex-wrap: nowrap; gap: 5px; min-height: 62px; font-size: 11px; padding: 9px 3px; }
   .indicator-panel .ip-controls { gap: 7px; }
   .indicator-panel .ip-controls select { font-size: 12px; padding-left: 8px; }
   .indicator-panel .ip-legend { gap: 9px; }
@@ -107,6 +112,6 @@
   .indicator-panel.instrument-expanded .ip-simulation { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .indicator-panel .led-bulb.blink, .indicator-panel .led-bulb.fast, .indicator-panel .led-glint.blink, .indicator-panel .led-glint.fast, .indicator-panel .legend-led.blink { animation: none !important; }
+  .indicator-panel .led-bulb.blink, .indicator-panel .led-bulb.fast, .indicator-panel .led-glint.blink, .indicator-panel .led-glint.fast, .indicator-panel .ip-state-blink { animation: none !important; }
   .indicator-panel .led-bulb.blink, .indicator-panel .led-bulb.fast { stroke: #fff6c9; stroke-width: 2; stroke-dasharray: 3 2; }
 }

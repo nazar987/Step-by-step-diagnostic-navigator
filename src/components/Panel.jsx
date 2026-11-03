@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { ArrowUpRight, ChevronLeft, ChevronRight, Expand, LayoutGrid, Pause, Play, RotateCcw } from 'lucide-react';
+import { Activity, ChevronLeft, ChevronRight, Circle, CircleDot, CircleMinus, Expand, FlaskConical, Image as ImageIcon, LayoutGrid, Pause, Play, RotateCcw, Route, ScanEye, SlidersHorizontal } from 'lucide-react';
 import { columns, labels, stateLabels, photoState, cycleState } from '../data/panel.js';
 import './panel.css';
 
@@ -80,21 +80,21 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
     <header className="ip-header">
       <div><span className="ip-eyebrow">СТАТИВ ДЦ</span><h3>Панель индикации</h3></div>
       <div className="ip-header-actions">
-        <button className="ip-icon-button" onClick={() => setPaused(!paused)} aria-label={paused ? 'Продолжить анимацию' : 'Приостановить анимацию'} title={paused ? 'Продолжить анимацию' : 'Приостановить анимацию'}>{paused ? <Play size={18}/> : <Pause size={18}/>}</button>
-        {!expanded && <button className="ip-icon-button" onClick={onExpand} aria-label="Развернуть панель" title="Развернуть панель"><Expand size={18}/></button>}
+        <button className="ip-icon-button" onClick={() => setPaused(!paused)} aria-label={paused ? 'Продолжить анимацию' : 'Приостановить анимацию'} title={paused ? 'Продолжить анимацию' : 'Приостановить анимацию'}>{paused ? <Play size={18} aria-hidden="true"/> : <Pause size={18} aria-hidden="true"/>}</button>
+        {!expanded && <button className="ip-icon-button" onClick={onExpand} aria-label="Развернуть панель" title="Развернуть панель"><Expand size={18} aria-hidden="true"/></button>}
       </div>
     </header>
 
     <div className="ip-presets" aria-label="Сценарий индикации">
-      {[['scenario', 'Текущий шаг'], ['photo', 'Как на фото 1'], ['clear', 'Все выключены']].map(([value, label]) => <button key={value} onClick={() => changePreset(value)} aria-pressed={preset === value} className={preset === value ? 'active' : ''}>{label}</button>)}
+      {[['scenario', 'Текущий шаг', Route], ['photo', 'Как на фото 1', ImageIcon], ['clear', 'Все выключены', Circle]].map(([value, label, Icon]) => <button key={value} onClick={() => changePreset(value)} aria-pressed={preset === value} className={preset === value ? 'active' : ''}><Icon size={16} aria-hidden="true"/><span>{label}</span></button>)}
     </div>
 
     <div className="ip-view-toolbar">
       <span className="ip-view-label">{view === 'all' ? 'Общий вид' : <>Секция <b>{String(bank + 1).padStart(2, '0')}</b><span> / 05</span></>}</span>
-      <button className="ip-view-toggle" aria-pressed={view === 'all'} onClick={() => setView(view === 'all' ? 'section' : 'all')}><LayoutGrid size={15}/>{view === 'all' ? 'Крупнее по секциям' : 'Вся панель'}</button>
+      <button className="ip-view-toggle" aria-pressed={view === 'all'} onClick={() => setView(view === 'all' ? 'section' : 'all')}><LayoutGrid size={15} aria-hidden="true"/>{view === 'all' ? 'Крупнее по секциям' : 'Вся панель'}</button>
     </div>
 
-    {locationOnly && <p className="ip-location-note"><strong>Только расположение индикаторов</strong>В источнике режим ламп не указан. Свечение и мигание не показаны.</p>}
+    {locationOnly && <p className="ip-location-note"><ScanEye size={18} aria-hidden="true"/><span><strong>Только расположение индикаторов</strong>В источнике режим ламп не указан. Свечение и мигание не показаны.</span></p>}
 
     <div className={`panel-housing ip-housing ip-${view} ${paused ? 'paused' : ''}`}>
       <svg viewBox={view === 'all' ? '0 0 1153 280' : banks[bank].viewBox} className="led-panel" aria-label="Векторная схема 50 светодиодов по фото 1">
@@ -152,30 +152,30 @@ export default function Panel({ scenario = {}, expanded = false, onExpand, manua
       </svg>
     </div>
 
-    {preset === 'scenario' && focusIndicators.length > 0 && <p className="ip-focus-caption"><i/> Обведены индикаторы для текущей проверки</p>}
+    {preset === 'scenario' && focusIndicators.length > 0 && <p className="ip-focus-caption"><ScanEye size={16} aria-hidden="true"/> Обведены индикаторы для текущей проверки</p>}
 
     {preset === 'scenario' && (previewLabel || contextNote) && <div className={`ip-context ${previewLabel ? 'is-preview' : ''}`}>
-      {previewLabel ? <><span className="ip-context-label">{previewKind === 'location' ? 'РАСПОЛОЖЕНИЕ ИНДИКАТОРОВ' : 'ПРИМЕР ИНДИКАЦИИ'}</span><p>{previewLabel}</p>{contextNote && <p className="ip-context-detail">{contextNote}</p>}{onResetPreview && <button onClick={onResetPreview}><ChevronLeft size={14}/> К вопросу</button>}</> : <p>{contextNote}</p>}
+      {previewLabel ? <><span className="ip-context-label">{previewKind === 'location' ? 'РАСПОЛОЖЕНИЕ ИНДИКАТОРОВ' : 'ПРИМЕР ИНДИКАЦИИ'}</span><p>{previewLabel}</p>{contextNote && <p className="ip-context-detail">{contextNote}</p>}{onResetPreview && <button onClick={onResetPreview}><ChevronLeft size={14} aria-hidden="true"/> К вопросу</button>}</> : <p>{contextNote}</p>}
     </div>}
 
     {view === 'section' ? <div className="ip-bank-navigation">
-      <button className="ip-icon-button" aria-label="Предыдущая секция панели" disabled={bank === 0} onClick={() => changeBank(bank - 1)}><ChevronLeft size={18}/></button>
+      <button className="ip-icon-button" aria-label="Предыдущая секция панели" disabled={bank === 0} onClick={() => changeBank(bank - 1)}><ChevronLeft size={18} aria-hidden="true"/></button>
       <label className="ip-bank-select"><span className="sr-only">Секция панели</span><select aria-label="Секция панели" value={bank} onChange={event => changeBank(Number(event.target.value))}>{banks.map((item, index) => <option key={item.name} value={index}>{item.name}</option>)}</select></label>
-      <button className="ip-icon-button" aria-label="Следующая секция панели" disabled={bank === banks.length - 1} onClick={() => changeBank(bank + 1)}><ChevronRight size={18}/></button>
+      <button className="ip-icon-button" aria-label="Следующая секция панели" disabled={bank === banks.length - 1} onClick={() => changeBank(bank + 1)}><ChevronRight size={18} aria-hidden="true"/></button>
     </div> : <p className="ip-scroll-hint">Прокрутите схему в сторону или переключитесь на крупные секции.</p>}
 
     <div className="instrument-legend ip-legend">
-      <span><i className="legend-led off"/> Выкл.</span><span><i className="legend-led on"/> Горит</span><span><i className={`legend-led blink ${paused ? 'paused' : ''}`}/> Мигает</span>
-      {preset === 'scenario' && <span><i className="legend-led unknown">−</i> Не задано</span>}
+      <span><Circle size={16} className="ip-state-icon ip-state-off" aria-hidden="true"/> Выкл.</span><span><CircleDot size={16} className="ip-state-icon ip-state-on" aria-hidden="true"/> Горит</span><span><Activity size={16} className={`ip-state-icon ip-state-blink ${paused ? 'paused' : ''}`} aria-hidden="true"/> Мигает</span>
+      {preset === 'scenario' && <span><CircleMinus size={16} className="ip-state-icon ip-state-unknown" aria-hidden="true"/> Не задано</span>}
       <span className="ip-active-count" aria-live="polite">{knownCount < shownLabels.length ? `Задано: ${knownCount} / ${shownLabels.length}` : `${view === 'all' ? activeCount : sectionActive} / ${shownLabels.length} активны`}</span>
     </div>
 
-    <div className="ip-manual-heading"><span>Настроить индикатор</span><button className="ip-reset" onClick={() => setManual({})} aria-label="Сбросить ручные изменения" title="Сбросить ручные изменения"><RotateCcw size={14}/><span>Сбросить</span></button></div>
+    <div className="ip-manual-heading"><span><SlidersHorizontal size={16} aria-hidden="true"/>Настроить индикатор</span><button className="ip-reset" onClick={() => setManual({})} aria-label="Сбросить ручные изменения" title="Сбросить ручные изменения"><RotateCcw size={14} aria-hidden="true"/><span>Сбросить</span></button></div>
     <div className="panel-control ip-controls">
       <label><span>Индикатор</span><select aria-label="Индикатор" value={selected} onChange={event => chooseLed(event.target.value)}>{labels.map(label => <option key={label}>{label}</option>)}</select></label>
       <label><span>Состояние</span><select aria-label="Состояние индикатора" value={statusFor(selected)} onChange={event => setManual(previous => ({ ...previous, [selected]: event.target.value }))}><option value="unknown" disabled>Не задано</option><option value="off">Выключен</option><option value="on">Горит</option><option value="blink">Мигает</option><option value="fast">Часто мигает</option></select></label>
     </div>
-    <p className="ip-caption">{hasManual ? 'Ручная настройка подсветки' : preset === 'photo' ? 'Статичное состояние с фотографии' : preset === 'clear' ? 'Все индикаторы выключены' : Object.keys(scenario).length ? 'Пример индикации выбранного признака' : focusIndicators.length ? 'Показано расположение; состояние ламп не задано' : 'Выберите симптом или настройте подсветку'}. <button onClick={onSource}>Фото 1 <ArrowUpRight size={13}/></button></p>
-    <div className="ip-simulation"><span className="ip-simulation-dot"/>Симуляция · ритм условный · без подключения к оборудованию</div>
+    <p className="ip-caption">{hasManual ? 'Ручная настройка подсветки' : preset === 'photo' ? 'Статичное состояние с фотографии' : preset === 'clear' ? 'Все индикаторы выключены' : Object.keys(scenario).length ? 'Пример индикации выбранного признака' : focusIndicators.length ? 'Показано расположение; состояние ламп не задано' : 'Выберите симптом или настройте подсветку'}. <button onClick={onSource}><ImageIcon size={14} aria-hidden="true"/>Фото 1</button></p>
+    <div className="ip-simulation"><FlaskConical size={15} aria-hidden="true"/><span>Симуляция · ритм условный · без подключения к оборудованию</span></div>
   </section>;
 }
